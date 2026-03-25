@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ghost Swarm | Tactical Radar</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { background-color: #050505; color: #00ffcc; font-family: 'Courier New', Courier, monospace; cursor: crosshair; }
+        .radar-container {
+            display: grid;
+            grid-template-columns: repeat(10, 40px);
+            grid-template-rows: repeat(10, 40px);
+            gap: 2px;
+            padding: 20px;
+            border: 2px solid #00ffcc;
+            box-shadow: 0 0 20px rgba(0, 255, 204, 0.2), inset 0 0 20px rgba(0, 255, 204, 0.1);
+            background: #0a0a0a;
+        }
+        .cell {
+            width: 40px; height: 40px;
+            background-color: #111;
+            border: 1px solid #222;
+            transition: all 0.1s ease;
+        }
+        /* Hover effect so you know exactly where you are dropping the wall */
+        .cell:hover { background-color: #00ffcc44; box-shadow: 0 0 10px #00ffcc; }
+        
+        .cell.wall { background-color: #333; border-color: #555; box-shadow: inset 0 0 10px #000; pointer-events: none; }
+        .cell.target { background-color: #ff003c; box-shadow: 0 0 15px #ff003c; pointer-events: none; }
+        .cell.drone { background-color: #00ffcc; box-shadow: 0 0 20px #00ffcc; transform: scale(1.1); pointer-events: none; }
+        .cell.trail { background-color: #005544; border-color: #00ffcc; opacity: 0.5; pointer-events: none; }
+        
+        /* New style for walls you drop mid-flight */
+        .cell.dynamic-wall { background-color: #ffaa00; box-shadow: 0 0 15px #ffaa00; pointer-events: none; border-color: #ffdd00; }
+    </style>
+</head>
+<body class="flex flex-col items-center justify-center h-screen m-0 overflow-hidden">
+
+    <div class="mb-6 text-center">
+        <h1 class="text-3xl font-bold tracking-widest uppercase" style="text-shadow: 0 0 10px #00ffcc;">Tactical Command</h1>
+        <p id="status" class="text-sm mt-2 opacity-70">Awaiting Connection...</p>
+        <p class="text-xs mt-2 text-yellow-400 opacity-80 animate-pulse">CLICK GRID TO DEPLOY ANOMALIES MID-FLIGHT</p>
+    </div>
+
+    <div id="radar" class="radar-container"></div>
+
+    <script>
+        const radar = document.getElementById('radar');
+        const statusText = document.getElementById('status');
+        const ws = new WebSocket("ws://127.0.0.1:8000/radar");
+        
+        let cells = {};
+        
+        // 1. Build the Interactive Grid
+        for (let y = 0; y < 10; y++) {
+            for (let x = 0; x < 10; x++) {
+                let div = document.createElement('div');
+                div.className = 'cell';
+                div.id = `cell-${x}-${y}`;
+                
+                // THE LASER DESIGNATOR: Fire coordinates to Python on click
+                div.onclick = () => {
+                    if (ws.readyState === WebSocket.OPEN) {
+                        div.classList.add('dynamic-wall'); // Light up orange on your screen
+                        ws.send(JSON.stringify({ type: "obstacle", x: x, y: y })); // Fire to server
+                    }
+                };
+                
+                radar.appendChild(div);
+                cells[`${x},${y}`] = div;
+            }
+        }
+
+        // Hardcode the initial structural walls
+        const obstacles = [[4, 2], [4, 3], [4, 4], [4, 5], [4, 6], [5, 6], [6, 6]];
+        obstacles.forEach(([x, y]) => cells[`${x},${y}`].classList.add('wall'));
+        cells['9,9'].classList.add('target');
+
+        let previousDronePos = null;
+
+        ws.onopen = () => {
+            statusText.innerText = "Full-Duplex Uplink Established. Drone is Live.";
+            statusText.style.color = "#00ffcc";
+        };
+
+        ws.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+            
+            if (data.drone_position) {
+                const [x, y] = data.drone_position;
+                
+                if (previousDronePos) {
+                    cells[previousDronePos].classList.remove('drone');
+                    cells[previousDronePos].classList.add('trail');
+                }
+                
+                const currentPos = `${x},${y}`;
+                cells[currentPos].classList.add('drone');
+                previousDronePos = currentPos;
+            } 
+            else if (data.status) {
+                statusText.innerText = `MISSION STATUS: ${data.status.toUpperCase()}`;
+                statusText.style.color = data.status.includes("Failed") ? "red" : "#ff003c";
+            }
+        };
+
+        ws.onerror = () => {
+            statusText.innerText = "CRITICAL ERROR: Uplink Failed. Is the Python server running?";
+            statusText.style.color = "red";
+        };
+    </script>
+</body>
+</html>
