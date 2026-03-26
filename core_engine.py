@@ -6,15 +6,36 @@ class Battlefield:
         self.height = height
         self.start = (0, 0)
         self.target = (14, 14)
-        self.obstacles = set()
+        
+        # SLAM UPGRADE: Two separate maps!
+        self.world_obstacles = set()  # The God-Mode map
+        self.known_obstacles = set()  # The Drone's memory
+        
         self.path = []
+        self.sensor_range = 2 # LiDAR sweeps 2 blocks in every direction
 
     def add_obstacle(self, x, y):
-        self.obstacles.add((x, y))
+        self.world_obstacles.add((x, y))
 
     def remove_obstacle(self, x, y):
-        if (x, y) in self.obstacles:
-            self.obstacles.remove((x, y))
+        if (x, y) in self.world_obstacles:
+            self.world_obstacles.remove((x, y))
+        if (x, y) in self.known_obstacles:
+            self.known_obstacles.remove((x, y))
+
+    # THE LIDAR SCANNER
+    def scan_environment(self, current_pos):
+        cx, cy = current_pos
+        newly_discovered = []
+        
+        for dx in range(-self.sensor_range, self.sensor_range + 1):
+            for dy in range(-self.sensor_range, self.sensor_range + 1):
+                nx, ny = cx + dx, cy + dy
+                if (nx, ny) in self.world_obstacles and (nx, ny) not in self.known_obstacles:
+                    self.known_obstacles.add((nx, ny))
+                    newly_discovered.append((nx, ny))
+                    
+        return newly_discovered
 
     def heuristic(self, a, b):
         return abs(a[0] - b[0]) + abs(a[1] - b[1])
@@ -25,7 +46,8 @@ class Battlefield:
         valid = []
         for nx, ny in neighbors:
             if 0 <= nx < self.width and 0 <= ny < self.height:
-                if (nx, ny) not in self.obstacles:
+                # IT NOW ONLY PATHFINDS AROUND WHAT IT KNOWS!
+                if (nx, ny) not in self.known_obstacles:
                     valid.append((nx, ny))
         return valid
 
@@ -35,7 +57,6 @@ class Battlefield:
         came_from = {self.start: None}
         cost_so_far = {self.start: 0}
 
-        # PROXIMITY FIX: Track the closest node we can reach
         closest_node = self.start
         min_h = self.heuristic(self.start, self.target)
 
@@ -59,7 +80,6 @@ class Battlefield:
                     heapq.heappush(frontier, (priority, next_pos))
                     came_from[next_pos] = current
 
-        # Always rebuild the path to the closest reachable point!
         current = closest_node
         path = []
         while current != self.start:
@@ -89,7 +109,7 @@ class Battlefield:
         first_wall = None
 
         while 0 <= nx < self.width and 0 <= ny < self.height:
-            if (nx, ny) in self.obstacles:
+            if (nx, ny) in self.world_obstacles:
                 if thickness == 0: 
                     first_wall = (nx, ny)
                 thickness += 1
