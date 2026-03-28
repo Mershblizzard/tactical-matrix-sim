@@ -5,14 +5,9 @@ class Battlefield:
     def __init__(self, width, height):
         self.width = width
         self.height = height
-        self.start = (0, 0)
-        self.target = (14, 14)
-        
         self.world_obstacles = set() 
         self.known_obstacles = set() 
         self.demons = [] 
-        
-        self.path = []
         self.sensor_range = 2 
 
     def add_obstacle(self, x, y):
@@ -24,14 +19,14 @@ class Battlefield:
         if (x, y) in self.known_obstacles:
             self.known_obstacles.remove((x, y))
 
-    def move_demons(self):
+    def move_demons(self, drone_positions):
         for i, demon in enumerate(self.demons):
             cx, cy = demon
             neighbors = [(cx, cy-1), (cx, cy+1), (cx-1, cy), (cx+1, cy)]
             valid = []
             for nx, ny in neighbors:
                 if 0 <= nx < self.width and 0 <= ny < self.height:
-                    if [nx, ny] not in self.demons and (nx, ny) != self.start and (nx, ny) not in [(0,0), (7,7), (14,14)]:
+                    if [nx, ny] not in self.demons and (nx, ny) not in drone_positions and (nx, ny) not in [(0,0), (0,14), (7,7), (14,14), (14,0)]:
                         valid.append([nx, ny])
             if valid:
                 if random.random() > 0.85: 
@@ -51,58 +46,56 @@ class Battlefield:
     def heuristic(self, a, b):
         return abs(a[0] - b[0]) + abs(a[1] - b[1])
 
-    def get_neighbors(self, pos):
+    def get_neighbors(self, pos, other_drone):
         x, y = pos
         neighbors = [(x, y-1), (x, y+1), (x-1, y), (x+1, y)]
         valid = []
         for nx, ny in neighbors:
             if 0 <= nx < self.width and 0 <= ny < self.height:
-                if (nx, ny) not in self.known_obstacles and [nx, ny] not in self.demons:
+                if (nx, ny) not in self.known_obstacles and [nx, ny] not in self.demons and (nx, ny) != other_drone:
                     valid.append((nx, ny))
         return valid
 
-    def find_path(self):
+    def find_path(self, start, target, other_drone):
+        if start == target: return [start]
         frontier = []
-        heapq.heappush(frontier, (0, self.start))
-        came_from = {self.start: None}
-        cost_so_far = {self.start: 0}
+        heapq.heappush(frontier, (0, start))
+        came_from = {start: None}
+        cost_so_far = {start: 0}
 
-        closest_node = self.start
-        min_h = self.heuristic(self.start, self.target)
+        closest_node = start
+        min_h = self.heuristic(start, target)
 
         while frontier:
             current = heapq.heappop(frontier)[1]
-            if current == self.target:
+            if current == target:
                 closest_node = current
                 break
 
-            current_h = self.heuristic(current, self.target)
+            current_h = self.heuristic(current, target)
             if current_h < min_h:
                 min_h = current_h
                 closest_node = current
 
-            for next_pos in self.get_neighbors(current):
+            for next_pos in self.get_neighbors(current, other_drone):
                 new_cost = cost_so_far[current] + 1
                 if next_pos not in cost_so_far or new_cost < cost_so_far[next_pos]:
                     cost_so_far[next_pos] = new_cost
-                    priority = new_cost + self.heuristic(next_pos, self.target)
+                    priority = new_cost + self.heuristic(next_pos, target)
                     heapq.heappush(frontier, (priority, next_pos))
                     came_from[next_pos] = current
 
         current = closest_node
         path = []
-        while current != self.start:
+        while current is not None:
             path.append(current)
             current = came_from[current]
-        path.append(self.start)
         path.reverse()
-        self.path = path
-        return closest_node == self.target
+        return path
 
-    def tactical_override(self, current_pos):
+    def tactical_override(self, current_pos, target, other_drone):
         cx, cy = current_pos
-        tx, ty = self.target
-
+        tx, ty = target
         dx = 1 if tx > cx else (-1 if tx < cx else 0)
         dy = 1 if ty > cy else (-1 if ty < cy else 0)
 
@@ -117,6 +110,9 @@ class Battlefield:
         first_wall = None
 
         while 0 <= nx < self.width and 0 <= ny < self.height:
+            if (nx, ny) == other_drone:
+                return None 
+                
             if (nx, ny) in self.world_obstacles or [nx, ny] in self.demons:
                 if thickness == 0: first_wall = (nx, ny)
                 thickness += 1
