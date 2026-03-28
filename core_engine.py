@@ -1,4 +1,5 @@
 import heapq
+import random
 
 class Battlefield:
     def __init__(self, width, height):
@@ -7,12 +8,12 @@ class Battlefield:
         self.start = (0, 0)
         self.target = (14, 14)
         
-        # SLAM UPGRADE: Two separate maps!
-        self.world_obstacles = set()  # The God-Mode map
-        self.known_obstacles = set()  # The Drone's memory
+        self.world_obstacles = set() 
+        self.known_obstacles = set() 
+        self.demons = [] 
         
         self.path = []
-        self.sensor_range = 2 # LiDAR sweeps 2 blocks in every direction
+        self.sensor_range = 2 
 
     def add_obstacle(self, x, y):
         self.world_obstacles.add((x, y))
@@ -23,18 +24,28 @@ class Battlefield:
         if (x, y) in self.known_obstacles:
             self.known_obstacles.remove((x, y))
 
-    # THE LIDAR SCANNER
+    def move_demons(self):
+        for i, demon in enumerate(self.demons):
+            cx, cy = demon
+            neighbors = [(cx, cy-1), (cx, cy+1), (cx-1, cy), (cx+1, cy)]
+            valid = []
+            for nx, ny in neighbors:
+                if 0 <= nx < self.width and 0 <= ny < self.height:
+                    if [nx, ny] not in self.demons and (nx, ny) != self.start and (nx, ny) not in [(0,0), (7,7), (14,14)]:
+                        valid.append([nx, ny])
+            if valid:
+                if random.random() > 0.85: 
+                    self.demons[i] = random.choice(valid)
+
     def scan_environment(self, current_pos):
         cx, cy = current_pos
         newly_discovered = []
-        
         for dx in range(-self.sensor_range, self.sensor_range + 1):
             for dy in range(-self.sensor_range, self.sensor_range + 1):
                 nx, ny = cx + dx, cy + dy
                 if (nx, ny) in self.world_obstacles and (nx, ny) not in self.known_obstacles:
                     self.known_obstacles.add((nx, ny))
                     newly_discovered.append((nx, ny))
-                    
         return newly_discovered
 
     def heuristic(self, a, b):
@@ -46,8 +57,7 @@ class Battlefield:
         valid = []
         for nx, ny in neighbors:
             if 0 <= nx < self.width and 0 <= ny < self.height:
-                # IT NOW ONLY PATHFINDS AROUND WHAT IT KNOWS!
-                if (nx, ny) not in self.known_obstacles:
+                if (nx, ny) not in self.known_obstacles and [nx, ny] not in self.demons:
                     valid.append((nx, ny))
         return valid
 
@@ -62,7 +72,6 @@ class Battlefield:
 
         while frontier:
             current = heapq.heappop(frontier)[1]
-
             if current == self.target:
                 closest_node = current
                 break
@@ -88,7 +97,6 @@ class Battlefield:
         path.append(self.start)
         path.reverse()
         self.path = path
-        
         return closest_node == self.target
 
     def tactical_override(self, current_pos):
@@ -109,13 +117,13 @@ class Battlefield:
         first_wall = None
 
         while 0 <= nx < self.width and 0 <= ny < self.height:
-            if (nx, ny) in self.world_obstacles:
-                if thickness == 0: 
-                    first_wall = (nx, ny)
+            if (nx, ny) in self.world_obstacles or [nx, ny] in self.demons:
+                if thickness == 0: first_wall = (nx, ny)
                 thickness += 1
             else:
                 if thickness == 1:
-                    self.remove_obstacle(*first_wall)
+                    if list(first_wall) in self.demons: self.demons.remove(list(first_wall))
+                    if first_wall in self.world_obstacles: self.remove_obstacle(*first_wall)
                     return {"action": "shoot", "wall": first_wall}
                 elif thickness > 1:
                     return {"action": "vault", "landing_zone": (nx, ny), "thickness": thickness}
@@ -123,7 +131,8 @@ class Battlefield:
             ny += dy
 
         if thickness > 0:
-            self.remove_obstacle(*first_wall)
+            if list(first_wall) in self.demons: self.demons.remove(list(first_wall))
+            if first_wall in self.world_obstacles: self.remove_obstacle(*first_wall)
             return {"action": "shoot", "wall": first_wall}
             
         return None
