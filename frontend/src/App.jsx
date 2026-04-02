@@ -4,6 +4,8 @@ import { OrbitControls, useGLTF } from '@react-three/drei';
 import { useSpring, animated } from '@react-spring/three';
 import * as THREE from 'three';
 
+const pyToThree = (x, y, z) => [x, z - 0.5, y];
+
 function ShatteredDebris({ position, onComplete }) {
   const groupRef = useRef();
   const fragments = useMemo(() => {
@@ -38,7 +40,7 @@ function ShatteredDebris({ position, onComplete }) {
       {fragments.map((frag, idx) => (
         <mesh key={idx} position={frag.pos}>
           <boxGeometry args={[0.4, 0.4, 0.4]} />
-          <meshStandardMaterial color="#ff4400" emissive="#ff2200" emissiveIntensity={1.5} transparent opacity={opacity} wireframe toneMapped={false} />
+          <meshStandardMaterial color="#ff5500" emissive="#ff2200" emissiveIntensity={1.5} transparent opacity={opacity} wireframe toneMapped={false} />
         </mesh>
       ))}
     </group>
@@ -50,14 +52,12 @@ function LaserBeam({ start, end }) {
   const endVec = new THREE.Vector3(...end);
   const distance = startVec.distanceTo(endVec);
   const position = startVec.clone().lerp(endVec, 0.5);
-  
   const ref = useRef();
   useEffect(() => { if (ref.current) { ref.current.lookAt(endVec); ref.current.rotateX(Math.PI / 2); } }, [endVec]);
-
   return (
     <mesh position={position} ref={ref}>
       <cylinderGeometry args={[0.08, 0.08, distance, 8]} />
-      <meshStandardMaterial color="#ff00ff" emissive="#ff00ff" emissiveIntensity={8.0} toneMapped={false} />
+      <meshStandardMaterial color="#ffaa00" emissive="#ff5500" emissiveIntensity={8.0} toneMapped={false} />
     </mesh>
   );
 }
@@ -68,74 +68,81 @@ function VTOLScout({ position }) {
   const clonedScene = useMemo(() => {
     const clone = scene.clone();
     clone.traverse((child) => {
-      if (child.isMesh) {
-        const name = child.name.toLowerCase();
-        const isEngine = name.includes('prop') || name.includes('rotor') || name.includes('blade') || name.includes('fan') || name.includes('engine');
-        child.material = new THREE.MeshStandardMaterial({
-          color: "#00ffcc", emissive: "#00ffcc", emissiveIntensity: isEngine ? 3.0 : 1.5, wireframe: !isEngine, toneMapped: false
-        });
-      }
+      if (child.isMesh) child.material = new THREE.MeshStandardMaterial({ color: "#00ffff", emissive: "#00ffff", emissiveIntensity: 3.5, wireframe: true, toneMapped: false });
     });
     return clone;
   }, [scene]);
-  return <animated.mesh position={pos}><primitive object={clonedScene} scale={[0.1, 0.1, 0.1]} position={[0, 0.2, 0]} /></animated.mesh>;
+  return (
+    <animated.mesh position={pos}>
+      <primitive object={clonedScene} scale={[0.1, 0.1, 0.1]} position={[0, 0.4, 0]} />
+      <pointLight intensity={150} distance={20} color="#00ffff" position={[0, 1, 0]} />
+    </animated.mesh>
+  );
 }
 
-// BRAVO: GOLD KNIGHT
 function GothicKnightBravo({ position }) {
   const { pos } = useSpring({ pos: position, config: { mass: 2, tension: 200, friction: 20 } });
   const { scene } = useGLTF('/winged_dark_gothic_knight_with_dragon_helmet.glb');
   const clonedScene = useMemo(() => {
     const clone = scene.clone();
     const neonMaterial = new THREE.MeshStandardMaterial({
-      color: "#ffaa00", emissive: "#ffaa00", emissiveIntensity: 2.0, 
-      wireframe: true, transparent: true, opacity: 0.2, 
-      depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false
+      color: "#ffaa00", emissive: "#ffaa00", emissiveIntensity: 2.0, wireframe: true, transparent: true, opacity: 0.3, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false
     });
     clone.traverse((child) => { if (child.isMesh) child.material = neonMaterial; });
     return clone;
   }, [scene]);
-  return <animated.mesh position={pos}><primitive object={clonedScene} scale={[2.5, 2.5, 2.5]} position={[0, 0.1, 0]} /></animated.mesh>;
-}
-
-// CHARLIE: NEON GREEN KNIGHT
-function GothicKnightCharlie({ position }) {
-  const { pos } = useSpring({ pos: position, config: { mass: 2, tension: 200, friction: 20 } });
-  const { scene } = useGLTF('/winged_dark_gothic_knight_with_dragon_helmet.glb');
-  const clonedScene = useMemo(() => {
-    const clone = scene.clone();
-    const neonMaterial = new THREE.MeshStandardMaterial({
-      color: "#00ff00", emissive: "#00ff00", emissiveIntensity: 2.0, 
-      wireframe: true, transparent: true, opacity: 0.2, 
-      depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false
-    });
-    clone.traverse((child) => { if (child.isMesh) child.material = neonMaterial; });
-    return clone;
-  }, [scene]);
-  return <animated.mesh position={pos}><primitive object={clonedScene} scale={[2.5, 2.5, 2.5]} position={[0, 0.1, 0]} /></animated.mesh>;
+  return (
+    <animated.mesh position={pos}>
+      <primitive object={clonedScene} scale={[2.5, 2.5, 2.5]} position={[0, 0.4, 0]} />
+      <pointLight intensity={80} distance={12} color="#ffaa00" position={[0, 1, 0]} />
+    </animated.mesh>
+  );
 }
 
 function DemonicObstacle({ position, isDiscovered }) {
-  const { pos } = useSpring({ pos: position, config: { mass: 1, tension: 150, friction: 20 } }); 
   const { scene } = useGLTF('/demonic_horned_horror_knight.glb');
   const clonedScene = useMemo(() => {
     const clone = scene.clone();
     const neonMaterial = new THREE.MeshStandardMaterial({
-      color: "#ff003c", emissive: "#ff003c", emissiveIntensity: isDiscovered ? 4.0 : 0.4, 
-      wireframe: true, transparent: true, opacity: isDiscovered ? 1.0 : 0.15, toneMapped: false
+      color: "#ff003c", emissive: "#ff003c", emissiveIntensity: isDiscovered ? 4.0 : 1.5, 
+      wireframe: !isDiscovered, transparent: true, opacity: isDiscovered ? 1.0 : 0.4, toneMapped: false
     });
     clone.traverse((child) => { if (child.isMesh) child.material = neonMaterial; });
     return clone;
   }, [scene, isDiscovered]);
-  return <animated.mesh position={pos}><primitive object={clonedScene} scale={[2.5, 2.5, 2.5]} position={[0, 0.1, 0]} /></animated.mesh>;
+  return <mesh position={position}><primitive object={clonedScene} scale={[2.5, 2.5, 2.5]} position={[0, 0.4, 0]} /></mesh>;
 }
 
-function HologramWall({ position, baseColor, glowColor, isDiscovered }) {
+// 💥 BUG FIX: Removed useSpring so the VIP perfectly snaps without bouncing! 💥
+function TargetVIP({ position }) {
   return (
     <mesh position={position}>
-      <boxGeometry args={[1, 2, 1]} />
-      <meshStandardMaterial color={baseColor} transparent={true} opacity={isDiscovered ? 0.7 : 0.35} emissive={glowColor} emissiveIntensity={isDiscovered ? 1.8 : 0.8} wireframe={!isDiscovered} depthWrite={false} toneMapped={false} />
+      <boxGeometry args={[0.8, 0.8, 0.8]} />
+      <meshStandardMaterial color="#ff003c" emissive="#ff003c" emissiveIntensity={3} toneMapped={false}/>
     </mesh>
+  );
+}
+
+function CyberBuilding({ position, isDiscovered }) {
+  return (
+    <group position={position}>
+      <mesh>
+        <boxGeometry args={[0.95, 0.95, 0.95]} />
+        <meshStandardMaterial 
+          color={isDiscovered ? "#ff5500" : "#020202"} 
+          emissive={isDiscovered ? "#aa3300" : "#000000"} 
+          roughness={isDiscovered ? 0.3 : 0.1} 
+          metalness={isDiscovered ? 0.8 : 0.9} 
+        />
+      </mesh>
+      <mesh>
+        <boxGeometry args={[0.98, 0.98, 0.98, 2, 2, 2]} />
+        <meshBasicMaterial 
+          color="#ff5500" wireframe={true} transparent={true} opacity={isDiscovered ? 0.9 : 0.15} 
+          blending={isDiscovered ? THREE.NormalBlending : THREE.AdditiveBlending} depthWrite={isDiscovered ? true : false} 
+        />
+      </mesh>
+    </group>
   );
 }
 
@@ -143,32 +150,46 @@ function CinematicGimbal({ targetPos }) {
   const controlsRef = useRef();
   useFrame(() => {
     if (controlsRef.current) {
-      const gridCenter = new THREE.Vector3(7, 0, 7);
-      const droneVec = new THREE.Vector3(targetPos[0], 0, targetPos[1]);
-      const lookTarget = gridCenter.lerp(droneVec, 0.25); 
-      controlsRef.current.target.lerp(lookTarget, 0.05);
+      const droneVec = new THREE.Vector3(targetPos[0], targetPos[1], targetPos[2]);
+      const lookTarget = droneVec.clone(); 
+      controlsRef.current.target.lerp(lookTarget, 0.1);
       controlsRef.current.update();
     }
   });
-  return <OrbitControls ref={controlsRef} makeDefault maxDistance={50} maxPolarAngle={Math.PI / 2.2} />;
+  return <OrbitControls ref={controlsRef} makeDefault maxDistance={40} minDistance={5} maxPolarAngle={Math.PI / 1.5} />;
 }
 
 export default function App() {
-  const [alphaPos, setAlphaPos] = useState([0, 0, 0]);
+  const localCityBlocks = useMemo(() => {
+      const blocks = [];
+      const city_data = [
+          [2, 3, 2, 3, 6], [11, 12, 11, 12, 6], [8, 9, 2, 3, 4], [2, 3, 11, 12, 4], [6, 7, 6, 7, 4], 
+          [1, 1, 6, 6, 2], [13, 13, 6, 6, 2], [6, 6, 1, 1, 2], [6, 6, 13, 13, 2]
+      ];
+      city_data.forEach(b => {
+          for(let x=b[0]; x<=b[1]; x++) {
+              for(let y=b[2]; y<=b[3]; y++) {
+                  for(let z=1; z<=b[4]; z++) { blocks.push([x, y, z]); }
+              }
+          }
+      });
+      return blocks;
+  }, []);
+
+  const [alphaPos, setAlphaPos] = useState([0, 0.5, 0]); 
   const [alphaBattery, setAlphaBattery] = useState(100.0);
-  const [bravoPos, setBravoPos] = useState([0, 0, 14]); 
+  const [bravoPos, setBravoPos] = useState([0, 0.5, 14]); 
   const [bravoBattery, setBravoBattery] = useState(100.0);
-  const [charliePos, setCharliePos] = useState([14, 0, 0]); 
-  const [charlieBattery, setCharlieBattery] = useState(100.0);
 
   const [isBravoActive, setIsBravoActive] = useState(false);
-  const [isCharlieActive, setIsCharlieActive] = useState(false);
+  const [vipPos, setVipPos] = useState([14, 0.5, 14]);
 
   const [status, setStatus] = useState("Awaiting Swarm Telemetry...");
+  const [wsConnected, setWsConnected] = useState(false);
   const [laserBeam, setLaserBeam] = useState(null);
   const [shrapnel, setShatter] = useState([]);
 
-  const [staticWalls, setStaticWalls] = useState([[3, 3], [3, 4], [3, 5], [4, 5], [5, 5], [10, 8], [10, 9], [10, 10], [11, 10], [12, 10]]);
+  const [staticWalls, setStaticWalls] = useState(localCityBlocks);
   const [dynamicWalls, setDynamicWalls] = useState([]);
   const [demonWalls, setDemonWalls] = useState([]);
   const [discoveredWalls, setDiscoveredWalls] = useState([]);
@@ -176,13 +197,13 @@ export default function App() {
   
   const [isRunning, setIsRunning] = useState(false);
   const [isVCRMode, setIsVCRMode] = useState(false); 
-  const [isHeavyChaosOn, setIsHeavyChaosOn] = useState(false);
   const [isSniperChaosOn, setIsSniperChaosOn] = useState(false);
+  const [isHeavyChaosOn, setIsHeavyChaosOn] = useState(false);
+  const [speedIdx, setSpeedIdx] = useState(3); 
   
   const speedMultipliers = [0.25, 0.33, 0.5, 1.0, 2.0, 3.0, 4.0];
   const speedLabels = ["SLOW 4x", "SLOW 3x", "SLOW 2x", "NORMAL 1x", "FAST 2x", "FAST 3x", "FAST 4x"];
-  const [speedIdx, setSpeedIdx] = useState(3); 
-  
+
   const isRunningRef = useRef(isRunning);
   useEffect(() => { isRunningRef.current = isRunning; }, [isRunning]);
   const isVCRModeRef = useRef(isVCRMode);
@@ -192,30 +213,27 @@ export default function App() {
   const vcrTimeouts = useRef([]);
   const wsRef = useRef(null);
   
-  const alphaPosRef = useRef([0, 0, 0]);
-  const bravoPosRef = useRef([0, 0, 14]);
-  const charliePosRef = useRef([14, 0, 0]);
+  const alphaPosRef = useRef([0, 0.5, 0]);
+  const bravoPosRef = useRef([0, 0.5, 14]);
 
-  const targetPos = [14, 0, 14]; const startPos = [0, 0, 0]; 
-  const bravoStartPos = [0, 0, 14]; const charlieStartPos = [14, 0, 0]; 
-  const relayPos = [7, 0, 7]; const gridCenter = 7; 
+  const startPos = [0, 0.01, 1]; 
+  const bravoStartPos = [0, 0.01, 14]; 
+  const gridCenter = 7; 
 
   useEffect(() => { alphaPosRef.current = alphaPos; }, [alphaPos]);
   useEffect(() => { bravoPosRef.current = bravoPos; }, [bravoPos]);
-  useEffect(() => { charliePosRef.current = charliePos; }, [charliePos]);
 
   const processWsData = (data) => {
     if (data.alpha_battery !== undefined) setAlphaBattery(data.alpha_battery);
     if (data.bravo_battery !== undefined) setBravoBattery(data.bravo_battery);
-    if (data.charlie_battery !== undefined) setCharlieBattery(data.charlie_battery);
     if (data.demons !== undefined) setDemonWalls(data.demons); 
-
     if (data.bravo_active !== undefined) setIsBravoActive(data.bravo_active);
-    if (data.charlie_active !== undefined) setIsCharlieActive(data.charlie_active);
+    
+    if (data.vip_pos !== undefined) setVipPos(pyToThree(data.vip_pos[0], data.vip_pos[1], data.vip_pos[2]));
 
     if (data.clear_walls) {
       setDynamicWalls([]); setDemonWalls([]); setDiscoveredWalls([]); 
-      setStaticWalls([[3, 3], [3, 4], [3, 5], [4, 5], [5, 5], [10, 8], [10, 9], [10, 10], [11, 10], [12, 10]]);
+      setStaticWalls(localCityBlocks);
     }
     if (data.clear_memory) setDiscoveredWalls([]); 
 
@@ -223,46 +241,76 @@ export default function App() {
       setDiscoveredWalls(prev => {
         const newSet = [...prev];
         data.discovered_walls.forEach(newWall => {
-          if (!newSet.some(w => w[0] === newWall[0] && w[1] === newWall[1])) newSet.push(newWall);
+          if (!newSet.some(w => w[0] === newWall[0] && w[1] === newWall[1] && w[2] === newWall[2])) newSet.push(newWall);
         });
         return newSet;
       });
     }
 
-    if (data.alpha_pos) setAlphaPos([data.alpha_pos[0], data.alpha_alt || 0, data.alpha_pos[1]]);
-    if (data.bravo_pos) setBravoPos([data.bravo_pos[0], data.bravo_alt || 0, data.bravo_pos[1]]);
-    if (data.charlie_pos) setCharliePos([data.charlie_pos[0], data.charlie_alt || 0, data.charlie_pos[1]]);
+    if (data.alpha_pos) setAlphaPos(pyToThree(data.alpha_pos[0], data.alpha_pos[1], data.alpha_pos[2]));
+    if (data.bravo_pos) setBravoPos(pyToThree(data.bravo_pos[0], data.bravo_pos[1], data.bravo_pos[2]));
     
     if (data.status) {
       setStatus(data.status);
-      if (data.status.includes("SECURED") || data.status.includes("FAILURE") || data.status.includes("COMPLETE") || data.status.includes("AWAITING ORDERS")) setIsRunning(false);
+      if (data.status.includes("SECURED") || data.status.includes("APPREHENDED") || data.status.includes("FAILURE") || data.status.includes("COMPLETE") || data.status.includes("AWAITING ORDERS")) setIsRunning(false);
       
       if (data.destroyed_wall) {
-        const [dx, dy] = data.destroyed_wall;
+        const dx = data.destroyed_wall[0]; const dy = data.destroyed_wall[1]; const dz = data.destroyed_wall[2];
         let shooterPos = alphaPosRef.current;
         if (data.shooter === "bravo") shooterPos = bravoPosRef.current;
-        if (data.shooter === "charlie") shooterPos = charliePosRef.current;
         
-        setLaserBeam({ start: [shooterPos[0], 0.5, shooterPos[2]], end: [dx, 0.5, dy] });
+        const threeTarget = pyToThree(dx, dy, dz);
+        setLaserBeam({ start: [shooterPos[0], shooterPos[1]+0.2, shooterPos[2]], end: [threeTarget[0], threeTarget[1], threeTarget[2]] });
         setTimeout(() => setLaserBeam(null), 250); 
         
-        const newShrapnel = { id: Date.now(), x: dx, y: dy };
+        const newShrapnel = { id: Date.now(), x: threeTarget[0], y: threeTarget[2], z: threeTarget[1] };
         setShatter(prev => [...prev, newShrapnel]);
 
-        setStaticWalls(prev => prev.filter(w => !(w[0] === dx && w[1] === dy)));
-        setDynamicWalls(prev => prev.filter(w => !(w[0] === dx && w[1] === dy)));
+        setStaticWalls(prev => prev.filter(w => !(w[0] === dx && w[1] === dy && w[2] === dz)));
+        setDynamicWalls(prev => prev.filter(w => !(w[0] === dx && w[1] === dy && w[2] === dz)));
       }
     }
   };
 
   useEffect(() => {
-    wsRef.current = new WebSocket("ws://127.0.0.1:8000/radar");
-    wsRef.current.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      if (isRunningRef.current && !isVCRModeRef.current) blackBox.current.push({ type: 'ws', data, time: Date.now() });
-      if (!isVCRModeRef.current) processWsData(data);
+    let reconnectTimeout;
+    let isMounted = true; 
+    
+    const connectWebSocket = () => {
+      wsRef.current = new WebSocket("ws://127.0.0.1:8000/radar");
+      
+      wsRef.current.onopen = () => {
+        if(!isMounted) return; 
+        setWsConnected(true);
+        setStatus("SYSTEM IDLE. READY FOR MANHUNT.");
+      };
+
+      wsRef.current.onmessage = (event) => {
+        if(!isMounted) return;
+        const data = JSON.parse(event.data);
+        if (isRunningRef.current && !isVCRModeRef.current) blackBox.current.push({ type: 'ws', data, time: Date.now() });
+        if (!isVCRModeRef.current) processWsData(data);
+      };
+
+      wsRef.current.onclose = () => {
+        if(!isMounted) return;
+        setWsConnected(false);
+        setStatus("OFFLINE: RECONNECTING TO PYTHON CORE...");
+        reconnectTimeout = setTimeout(connectWebSocket, 2000);
+      };
+      
+      wsRef.current.onerror = () => { if(isMounted && wsRef.current) wsRef.current.close(); }
     };
-    return () => wsRef.current.close();
+
+    connectWebSocket();
+    return () => { 
+      isMounted = false; 
+      clearTimeout(reconnectTimeout); 
+      if (wsRef.current) {
+        wsRef.current.onclose = null; 
+        wsRef.current.close(); 
+      }
+    };
   }, []);
 
   const sendCommand = (action, value = null) => {
@@ -271,17 +319,65 @@ export default function App() {
 
   const handleFloorClick = (event) => {
     const clickX = Math.round(event.point.x); const clickZ = Math.round(event.point.z);
-    const isNearTarget = Math.abs(clickX - targetPos[0]) <= 1 && Math.abs(clickZ - targetPos[2]) <= 1;
-    const isNearRelay = clickX === relayPos[0] && clickZ === relayPos[2];
-    if (clickX >= 0 && clickX <= 14 && clickZ >= 0 && clickZ <= 14 && !isNearTarget && !isNearRelay) {
-      const isOccupied = [...staticWalls, ...dynamicWalls, ...demonWalls].some(w => w[0] === clickX && w[1] === clickZ);
-      if (!isOccupied && wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-        wsRef.current.send(JSON.stringify({ type: "obstacle", x: clickX, y: clickZ }));
-        setDynamicWalls((prev) => [...prev, [clickX, clickZ]]);
-        if (isRunningRef.current && !isVCRModeRef.current) blackBox.current.push({ type: 'chaos', data: {x: clickX, y: clickZ}, time: Date.now() });
-      }
+    let highestZ = 0;
+    staticWalls.forEach(w => { if (w[0] === clickX && w[1] === clickZ && w[2] > highestZ) highestZ = w[2]; });
+    dynamicWalls.forEach(w => { if (w[0] === clickX && w[1] === clickZ && w[2] > highestZ) highestZ = w[2]; });
+    const clickY = highestZ + 1; 
+    
+    if (clickY <= 6 && wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+      wsRef.current.send(JSON.stringify({ type: "obstacle", x: clickX, y: clickZ, z: clickY }));
+      setDynamicWalls((prev) => [...prev, [clickX, clickZ, clickY]]);
+      if (isRunningRef.current && !isVCRModeRef.current) blackBox.current.push({ type: 'chaos', data: {x: clickX, y: clickZ, z: clickY}, time: Date.now() });
     }
   };
+
+  useEffect(() => {
+    let sniperTimer;
+    if (isSniperChaosOn && isRunning && !isVCRMode) {
+      sniperTimer = setInterval(() => {
+        if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+          const dropX = Math.floor(Math.random() * 15); const dropZ = Math.floor(Math.random() * 15);
+          let highestZ = 0;
+          staticWalls.forEach(w => { if (w[0] === dropX && w[1] === dropZ && w[2] > highestZ) highestZ = w[2]; });
+          dynamicWalls.forEach(w => { if (w[0] === dropX && w[1] === dropZ && w[2] > highestZ) highestZ = w[2]; });
+          const dropY = highestZ + 1;
+          
+          if (dropY <= 6 && !(dropX === 0 && dropZ === 0) && !(dropX === 14 && dropZ === 14)) {
+            wsRef.current.send(JSON.stringify({ type: "obstacle", x: dropX, y: dropZ, z: dropY }));
+            setDynamicWalls(prev => [...prev, [dropX, dropZ, dropY]]);
+          }
+        }
+      }, 800);
+    }
+    return () => clearInterval(sniperTimer);
+  }, [isSniperChaosOn, isRunning, isVCRMode, dynamicWalls, staticWalls]);
+
+  useEffect(() => {
+    let heavyTimer;
+    if (isHeavyChaosOn && isRunning && !isVCRMode) {
+      heavyTimer = setInterval(() => {
+        if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+          const baseX = Math.floor(Math.random() * 14); const baseZ = Math.floor(Math.random() * 14);
+          const shapes = [[[0,0], [1,0], [0,1], [1,1]], [[0,0], [0,1], [0,2], [0,3]]];
+          const shape = shapes[Math.floor(Math.random() * shapes.length)];
+
+          shape.forEach(offset => {
+            const nx = baseX + offset[0]; const nz = baseZ + offset[1];
+            let highestZ = 0;
+            staticWalls.forEach(w => { if (w[0] === nx && w[1] === nz && w[2] > highestZ) highestZ = w[2]; });
+            dynamicWalls.forEach(w => { if (w[0] === nx && w[1] === nz && w[2] > highestZ) highestZ = w[2]; });
+            const dropY = highestZ + 1;
+            
+            if (dropY <= 6 && nx <= 14 && nz <= 14 && !(nx === 0 && nz === 0) && !(nx === 14 && nz === 14)) {
+              wsRef.current.send(JSON.stringify({ type: "obstacle", x: nx, y: nz, z: dropY }));
+              setDynamicWalls(prev => [...prev, [nx, nz, dropY]]);
+            }
+          });
+        }
+      }, 1500);
+    }
+    return () => clearInterval(heavyTimer);
+  }, [isHeavyChaosOn, isRunning, isVCRMode, dynamicWalls, staticWalls]);
 
   const handleSpeedChange = (direction) => {
     const newIdx = Math.max(0, Math.min(speedMultipliers.length - 1, speedIdx + direction));
@@ -289,21 +385,22 @@ export default function App() {
   };
 
   const handleDropThreat = () => {
-    if (demonWalls.length >= 4) { setStatus("MAXIMUM THREAT CAPACITY REACHED (4/4)."); return; }
+    if (demonWalls.length >= 6) { setStatus("MAXIMUM THREAT CAPACITY REACHED."); return; }
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
       let dropX, dropZ, isOccupied, isBaseOrRelay, attempts = 0;
       do {
-        dropX = Math.floor(Math.random() * 12) + 2; dropZ = Math.floor(Math.random() * 12) + 2; 
-        isOccupied = [...staticWalls, ...dynamicWalls, ...demonWalls].some(w => w[0] === dropX && w[1] === dropZ);
-        isBaseOrRelay = (dropX === 0 && dropZ === 0) || (dropX === 7 && dropZ === 7) || (dropX === 14 && dropZ === 14) || (dropX === 14 && dropZ === 0) || (dropX === 0 && dropZ === 14);
+        dropX = Math.floor(Math.random() * 15); dropZ = Math.floor(Math.random() * 15); 
+        isOccupied = [...staticWalls, ...dynamicWalls, ...demonWalls].some(w => w[0] === dropX && w[1] === dropZ && w[2] === 1);
+        isBaseOrRelay = (dropX === 0 && dropZ === 0) || (dropX === 14 && dropZ === 14) || (dropX === 0 && dropZ === 14);
         attempts++;
       } while ((isOccupied || isBaseOrRelay) && attempts < 50);
-      if (!isOccupied && !isBaseOrRelay) wsRef.current.send(JSON.stringify({ type: "drop_demon", x: dropX, y: dropZ }));
+      if (!isOccupied && !isBaseOrRelay) wsRef.current.send(JSON.stringify({ type: "drop_demon", x: dropX, y: dropZ, z: 1 }));
     }
   };
 
   const handlePlayPause = () => {
     if (isVCRMode) return; 
+    if (!wsConnected) { setStatus("OFFLINE: START PYTHON SERVER."); return; }
     if (!isRunning) {
       if (alphaPos[0] === 0 && alphaPos[2] === 0) { setMissionMemory({ walls: [...dynamicWalls], demons: [...demonWalls] }); blackBox.current = []; }
       sendCommand("start_mission");
@@ -314,182 +411,137 @@ export default function App() {
   const handleResetDrone = () => {
     if (isVCRMode) { vcrTimeouts.current.forEach(clearTimeout); vcrTimeouts.current = []; setIsVCRMode(false); }
     sendCommand("reset_drone");
+    setStaticWalls(localCityBlocks); 
   };
 
   const handleReplay = () => {
     if (blackBox.current.length === 0) { setStatus("NO FLIGHT RECORDED."); return; }
     sendCommand("pause_mission"); setIsRunning(false); setIsVCRMode(true);
     vcrTimeouts.current.forEach(clearTimeout); vcrTimeouts.current = [];
-    setAlphaPos([0, 0, 0]); setAlphaBattery(100); 
-    setBravoPos([0, 0, 14]); setBravoBattery(100);
-    setCharliePos([14, 0, 0]); setCharlieBattery(100);
+    setAlphaPos(pyToThree(0,0,1)); setAlphaBattery(100); 
+    setBravoPos(pyToThree(0,14,1)); setBravoBattery(100);
     setStatus("⏪ VCR INITIATED..."); setDiscoveredWalls([]);
     setDynamicWalls([...missionMemory.walls]); setDemonWalls([...missionMemory.demons]);
-    setStaticWalls([[3, 3], [3, 4], [3, 5], [4, 5], [5, 5], [10, 8], [10, 9], [10, 10], [11, 10], [12, 10]]);
     const startTime = blackBox.current[0].time;
     blackBox.current.forEach((log, index) => {
       const delay = log.time - startTime;
       const t = setTimeout(() => {
         if (log.type === 'ws') processWsData(log.data);
-        else if (log.type === 'chaos') setDynamicWalls(prev => [...prev, [log.data.x, log.data.y]]);
+        else if (log.type === 'chaos') setDynamicWalls(prev => [...prev, [log.data.x, log.data.y, log.data.z]]);
         if (index === blackBox.current.length - 1) setTimeout(() => { setIsVCRMode(false); setStatus("✅ VCR PLAYBACK COMPLETE."); }, 1000);
       }, delay);
       vcrTimeouts.current.push(t);
     });
   };
 
-  useEffect(() => {
-    let heavyTimer;
-    if (isHeavyChaosOn && isRunning && !isVCRMode) {
-      heavyTimer = setInterval(() => {
-        if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-          const cx = Math.floor(alphaPosRef.current[0]); const cz = Math.floor(alphaPosRef.current[2]);
-          const dirX = targetPos[0] > cx ? 1 : (targetPos[0] < cx ? -1 : 0); const dirZ = targetPos[2] > cz ? 1 : (targetPos[2] < cz ? -1 : 0);
-          const dropX = Math.min(14, Math.max(0, cx + (dirX * 2))); const dropZ = Math.min(14, Math.max(0, cz + (dirZ * 2)));
-          const shapes = [[[0,0], [1,0], [2,0], [3,0]], [[0,0], [1,0], [0,1], [1,1]], [[0,0], [1,0], [2,0], [1,1]], [[0,0], [0,1], [0,2], [1,2]]];
-          const selectedShape = shapes[Math.floor(Math.random() * shapes.length)];
-          selectedShape.forEach(offset => {
-            const nx = dropX + offset[0]; const nz = dropZ + offset[1];
-            const isOccupied = [...staticWalls, ...dynamicWalls, ...demonWalls].some(w => w[0] === nx && w[1] === nz);
-            if (nx >= 0 && nx <= 14 && nz >= 0 && nz <= 14 && !(Math.abs(nx-targetPos[0])<=1 && Math.abs(nz-targetPos[2])<=1) && !(nx===0&&nz===0) && !isOccupied) {
-              wsRef.current.send(JSON.stringify({ type: "obstacle", x: nx, y: nz }));
-              setDynamicWalls(prev => [...prev, [nx, nz]]);
-              if (isRunningRef.current && !isVCRModeRef.current) blackBox.current.push({ type: 'chaos', data: {x: nx, y: nz}, time: Date.now() });
-            }
-          });
-        }
-      }, 1500);
-    }
-    return () => clearInterval(heavyTimer);
-  }, [isHeavyChaosOn, isRunning, isVCRMode]);
-
-  useEffect(() => {
-    let sniperTimer;
-    if (isSniperChaosOn && isRunning && !isVCRMode) {
-      sniperTimer = setInterval(() => {
-        if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-          const cx = Math.floor(alphaPosRef.current[0]); const cz = Math.floor(alphaPosRef.current[2]);
-          const dirX = targetPos[0] > cx ? 1 : (targetPos[0] < cx ? -1 : 0); const dirZ = targetPos[2] > cz ? 1 : (targetPos[2] < cz ? -1 : 0);
-          const dropX = Math.min(14, Math.max(0, cx + dirX)); const dropZ = Math.min(14, Math.max(0, cz + dirZ));
-          const isOccupied = [...staticWalls, ...dynamicWalls, ...demonWalls].some(w => w[0] === dropX && w[1] === dropZ);
-          if (!(Math.abs(dropX-targetPos[0])<=1 && Math.abs(dropZ-targetPos[2])<=1) && !(dropX===0&&dropZ===0) && !isOccupied) {
-            wsRef.current.send(JSON.stringify({ type: "obstacle", x: dropX, y: dropZ }));
-            setDynamicWalls(prev => [...prev, [dropX, dropZ]]);
-            if (isRunningRef.current && !isVCRModeRef.current) blackBox.current.push({ type: 'chaos', data: {x: dropX, y: dropZ}, time: Date.now() });
-          }
-        }
-      }, 800);
-    }
-    return () => clearInterval(sniperTimer);
-  }, [isSniperChaosOn, isRunning, isVCRMode]);
-
-  const checkDiscovered = (x, y) => discoveredWalls.some(w => w[0] === x && w[1] === y);
-  const btnStyle = { background: 'rgba(10, 10, 10, 0.7)', color: '#00ffcc', border: '1px solid #004444', padding: '8px 10px', cursor: 'pointer', borderRadius: '4px', fontSize: '11px', letterSpacing: '1px', textTransform: 'uppercase', backdropFilter: 'blur(5px)', width: '100%', textAlign: 'center', transition: 'all 0.2s', fontWeight: 'bold' };
+  const checkDiscovered = (x, y, z) => discoveredWalls.some(w => w[0] === x && w[1] === y && w[2] === z);
+  const btnStyle = { background: 'rgba(10, 10, 10, 0.7)', color: wsConnected ? '#ff5500' : '#444', border: `1px solid ${wsConnected ? '#aa3300' : '#444'}`, padding: '8px 10px', cursor: wsConnected ? 'pointer' : 'not-allowed', borderRadius: '4px', fontSize: '11px', letterSpacing: '1px', textTransform: 'uppercase', backdropFilter: 'blur(5px)', width: '100%', textAlign: 'center', transition: 'all 0.2s', fontWeight: 'bold' };
 
   return (
     <div style={{ width: '100vw', height: '100vh', position: 'relative' }}>
       {isVCRMode && <div style={{ position: 'absolute', top: 20, right: 20, color: '#ff003c', zIndex: 10, fontFamily: 'monospace', fontSize: '16px', animation: 'pulse 1s infinite', border: '1px solid #ff003c', padding: '10px', background: 'rgba(255,0,0,0.1)' }}>● VCR PLAYBACK ACTIVE</div>}
+      {!wsConnected && <div style={{ position: 'absolute', top: 20, right: 20, color: '#ff003c', zIndex: 10, fontFamily: 'monospace', fontSize: '16px', animation: 'pulse 1s infinite', border: '1px solid #ff003c', padding: '10px', background: 'rgba(255,0,0,0.1)' }}>⚠ PYTHON SERVER OFFLINE</div>}
       
-      <div style={{ position: 'absolute', top: 20, left: 20, color: '#00ffcc', zIndex: 10, fontFamily: 'monospace', pointerEvents: 'none', width: '300px' }}>
-        <h1 style={{ margin: 0, fontSize: '20px', letterSpacing: '2px', textShadow: '0 0 10px #00ffcc' }}>SWARM MATRIX v17.0</h1>
-        <p style={{ margin: '5px 0', opacity: 0.8, fontSize: '12px', color: '#ffaa00' }}>STATUS: {status}</p>
+      <div style={{ position: 'absolute', top: 20, left: 20, color: '#ff5500', zIndex: 10, fontFamily: 'monospace', pointerEvents: 'none', width: '300px' }}>
+        <h1 style={{ margin: 0, fontSize: '20px', letterSpacing: '2px', textShadow: '0 0 10px #ff5500' }}>CYBER-CITY MANHUNT</h1>
+        <p style={{ margin: '5px 0', opacity: 0.8, fontSize: '12px', color: wsConnected ? '#ffaa00' : '#ff003c' }}>STATUS: {status}</p>
         
         <div style={{ marginTop: '15px' }}>
-          {/* ALPHA BATTERY (CYAN) */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', color: alphaBattery > 40 ? '#00ffcc' : '#ff003c', marginBottom: '2px', fontWeight: 'bold' }}><span>ALPHA (VTOL)</span><span>{Math.max(0, alphaBattery).toFixed(1)}%</span></div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', color: alphaBattery > 40 ? '#00ffff' : '#ff003c', marginBottom: '2px', fontWeight: 'bold' }}><span>ALPHA (SCOUT)</span><span>{Math.max(0, alphaBattery).toFixed(1)}%</span></div>
           <div style={{ width: '100%', height: '6px', background: 'rgba(20,20,20,0.8)', border: '1px solid #333', borderRadius: '2px', overflow: 'hidden', marginBottom: '8px' }}>
-            <div style={{ width: `${Math.max(0, alphaBattery)}%`, height: '100%', background: alphaBattery > 40 ? '#00ffcc' : '#ff003c', transition: 'width 0.3s ease' }} />
+            <div style={{ width: `${Math.max(0, alphaBattery)}%`, height: '100%', background: alphaBattery > 40 ? '#00ffff' : '#ff003c', transition: 'width 0.3s ease' }} />
           </div>
 
-          {/* BRAVO BATTERY (GOLD) */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', color: bravoBattery > 40 ? '#ffaa00' : '#ff003c', marginBottom: '2px', fontWeight: 'bold' }}><span>BRAVO (GOLD)</span><span>{Math.max(0, bravoBattery).toFixed(1)}%</span></div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', color: bravoBattery > 40 ? '#ffaa00' : '#ff003c', marginBottom: '2px', fontWeight: 'bold' }}><span>BRAVO (HEAVY)</span><span>{Math.max(0, bravoBattery).toFixed(1)}%</span></div>
           <div style={{ width: '100%', height: '6px', background: 'rgba(20,20,20,0.8)', border: '1px solid #333', borderRadius: '2px', overflow: 'hidden', marginBottom: '8px' }}>
             <div style={{ width: `${Math.max(0, bravoBattery)}%`, height: '100%', background: bravoBattery > 40 ? '#ffaa00' : '#ff003c', transition: 'width 0.3s ease' }} />
-          </div>
-
-          {/* CHARLIE BATTERY (NEON GREEN) */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', color: charlieBattery > 40 ? '#00ff00' : '#ff003c', marginBottom: '2px', fontWeight: 'bold' }}><span>CHARLIE (GREEN)</span><span>{Math.max(0, charlieBattery).toFixed(1)}%</span></div>
-          <div style={{ width: '100%', height: '6px', background: 'rgba(20,20,20,0.8)', border: '1px solid #333', borderRadius: '2px', overflow: 'hidden' }}>
-            <div style={{ width: `${Math.max(0, charlieBattery)}%`, height: '100%', background: charlieBattery > 40 ? '#00ff00' : '#ff003c', transition: 'width 0.3s ease' }} />
           </div>
         </div>
       </div>
       
       <div style={{ position: 'absolute', top: '50%', left: 20, transform: 'translateY(-50%)', display: 'flex', flexDirection: 'column', gap: '8px', zIndex: 10, fontFamily: 'monospace', width: '180px' }}>
         <div style={{ color: '#aaa', fontSize: '10px', textAlign: 'center', marginTop: '10px', letterSpacing: '2px'}}>--- MISSION CONTROL ---</div>
-        <button onClick={handlePlayPause} style={{ ...btnStyle, background: isRunning ? 'rgba(0, 255, 204, 0.2)' : 'rgba(10, 10, 10, 0.7)', fontSize: '14px', padding: '12px', color: isRunning ? '#00ffff' : '#00ffcc', borderColor: isRunning ? '#00ffff' : '#004444' }}>{isRunning ? '⏸ PAUSE MISSION' : '▶ START MISSION'}</button>
+        <button onClick={handlePlayPause} style={{ ...btnStyle, background: isRunning ? 'rgba(255, 85, 0, 0.2)' : 'rgba(10, 10, 10, 0.7)', fontSize: '14px', padding: '12px', color: isRunning ? '#ffaa00' : (wsConnected ? '#ff5500' : '#444'), borderColor: isRunning ? '#ffaa00' : (wsConnected ? '#aa3300' : '#444') }}>{isRunning ? '⏸ PAUSE' : '▶ START MANHUNT'}</button>
         
-        {/* ESCORT TOGGLES */}
+        <button onClick={() => sendCommand("relocate_vip")} style={{ ...btnStyle, color: wsConnected ? '#ff003c' : '#444', borderColor: wsConnected ? '#ff003c' : '#444', background: wsConnected ? 'rgba(255, 0, 60, 0.1)' : 'rgba(10,10,10,0.7)' }}>✛ RELOCATE VIP TARGET</button>
+
         <div style={{ display: 'flex', gap: '5px', width: '100%' }}>
-          <button onClick={() => sendCommand("toggle_bravo")} style={{ ...btnStyle, background: isBravoActive ? 'rgba(255, 170, 0, 0.4)' : 'rgba(255, 170, 0, 0.05)', color: isBravoActive ? '#ffffff' : '#cc8800', borderColor: isBravoActive ? '#ffffff' : '#cc8800', boxShadow: isBravoActive ? '0 0 12px rgba(255, 170, 0, 0.8)' : 'none', transition: 'all 0.3s ease' }}>{isBravoActive ? '🛡 BRAVO' : '▶ BRAVO'}</button>
-          
-          {/* CHARLIE GREEN TOGGLE */}
-          <button onClick={() => sendCommand("toggle_charlie")} style={{ ...btnStyle, background: isCharlieActive ? 'rgba(0, 255, 0, 0.4)' : 'rgba(0, 255, 0, 0.05)', color: isCharlieActive ? '#ffffff' : '#00aa00', borderColor: isCharlieActive ? '#ffffff' : '#00aa00', boxShadow: isCharlieActive ? '0 0 12px rgba(0, 255, 0, 0.8)' : 'none', transition: 'all 0.3s ease' }}>{isCharlieActive ? '🛡 CHARLIE' : '▶ CHARLIE'}</button>
+          <button onClick={() => sendCommand("toggle_bravo")} style={{ ...btnStyle, background: isBravoActive ? 'rgba(255, 170, 0, 0.4)' : 'rgba(255, 170, 0, 0.05)', color: isBravoActive ? '#ffffff' : (wsConnected ? '#cc8800' : '#444'), borderColor: isBravoActive ? '#ffffff' : (wsConnected ? '#cc8800' : '#444'), boxShadow: isBravoActive ? '0 0 12px rgba(255, 170, 0, 0.8)' : 'none', transition: 'all 0.3s ease' }}>{isBravoActive ? '🛡 BRAVO' : '▶ BRAVO'}</button>
         </div>
         
-        <button onClick={handleReplay} style={{ ...btnStyle, color: '#00aaff', borderColor: '#00aaff' }}>⏪ REPLAY TIMELINE</button>
+        <button onClick={handleReplay} style={{ ...btnStyle, color: wsConnected ? '#00aaff' : '#444', borderColor: wsConnected ? '#00aaff' : '#444' }}>⏪ REPLAY TIMELINE</button>
         
         <div style={{ display: 'flex', gap: '5px', width: '100%', marginTop: '5px' }}>
           <button onClick={() => handleSpeedChange(-1)} style={{ ...btnStyle, width: '30px' }}>-</button>
-          <div style={{ ...btnStyle, cursor: 'default', flex: 1, color: '#00ffff', borderColor: '#00ffff', padding: '8px 0' }}>{speedLabels[speedIdx]}</div>
+          <div style={{ ...btnStyle, cursor: 'default', flex: 1, color: wsConnected ? '#ffaa00' : '#444', borderColor: wsConnected ? '#ffaa00' : '#444', padding: '8px 0' }}>{speedLabels[speedIdx]}</div>
           <button onClick={() => handleSpeedChange(1)} style={{ ...btnStyle, width: '30px' }}>+</button>
         </div>
         
-        <button onClick={() => { sendCommand("rtb"); setIsRunning(true); }} style={{ ...btnStyle, color: '#bb66ff', borderColor: '#bb66ff' }}>⮌ RETURN TO BASE</button>
-        <button onClick={handleResetDrone} style={{ ...btnStyle, color: '#fff', borderColor: '#fff' }}>⟳ RESET SWARM</button>
-        <button onClick={() => { setDynamicWalls([]); setDemonWalls([]); sendCommand("clear_walls"); }} style={{ ...btnStyle, color: '#ff4400', borderColor: '#ff4400' }}>⎚ CLEAR ANOMALIES</button>
+        <button onClick={() => { sendCommand("rtb"); setIsRunning(true); }} style={{ ...btnStyle, color: wsConnected ? '#bb66ff' : '#444', borderColor: wsConnected ? '#bb66ff' : '#444' }}>⮌ RETURN TO BASE</button>
+        <button onClick={handleResetDrone} style={{ ...btnStyle, color: wsConnected ? '#fff' : '#444', borderColor: wsConnected ? '#fff' : '#444' }}>⟳ RESET SWARM</button>
       </div>
 
       <div style={{ position: 'absolute', top: '50%', right: 20, transform: 'translateY(-50%)', display: 'flex', flexDirection: 'column', gap: '8px', zIndex: 10, fontFamily: 'monospace', width: '180px' }}>
         <div style={{ color: '#aaa', fontSize: '10px', textAlign: 'center', marginTop: '10px', letterSpacing: '2px'}}>--- THREAT DEPLOYMENT ---</div>
-        <button onClick={handleDropThreat} style={{ ...btnStyle, color: '#ff003c', borderColor: '#ff003c', background: 'rgba(255, 0, 60, 0.1)' }}>⚠ DROP DEMON KNIGHT</button>
+        <button onClick={handleDropThreat} style={{ ...btnStyle, color: wsConnected ? '#ff003c' : '#444', borderColor: wsConnected ? '#ff003c' : '#444', background: wsConnected ? 'rgba(255, 0, 60, 0.1)' : 'rgba(10,10,10,0.7)' }}>⚠ DROP DEMON KNIGHT</button>
         
         <div style={{ color: '#aaa', fontSize: '10px', textAlign: 'center', marginTop: '15px', letterSpacing: '2px'}}>--- CHAOS ENGINES ---</div>
-        <button onClick={() => setIsSniperChaosOn(!isSniperChaosOn)} style={{ ...btnStyle, background: isSniperChaosOn ? 'rgba(255, 170, 0, 0.2)' : 'rgba(10, 10, 10, 0.7)', color: isSniperChaosOn ? '#ffaa00' : '#555', borderColor: isSniperChaosOn ? '#ffaa00' : '#333' }}>{isSniperChaosOn ? '■ SNIPER: ON' : '▶ SNIPER: OFF'}</button>
-        <button onClick={() => setIsHeavyChaosOn(!isHeavyChaosOn)} style={{ ...btnStyle, background: isHeavyChaosOn ? 'rgba(255, 0, 60, 0.2)' : 'rgba(10, 10, 10, 0.7)', color: isHeavyChaosOn ? '#ff003c' : '#555', borderColor: isHeavyChaosOn ? '#ff003c' : '#333' }}>{isHeavyChaosOn ? '■ TETRIS: ON' : '▶ TETRIS: OFF'}</button>
+        <button onClick={() => setIsSniperChaosOn(!isSniperChaosOn)} style={{ ...btnStyle, background: isSniperChaosOn ? 'rgba(255, 170, 0, 0.2)' : 'rgba(10, 10, 10, 0.7)', color: isSniperChaosOn ? '#ffaa00' : (wsConnected ? '#555' : '#333'), borderColor: isSniperChaosOn ? '#ffaa00' : '#333' }}>{isSniperChaosOn ? '■ SNIPER: ON' : '▶ SNIPER: OFF'}</button>
+        <button onClick={() => setIsHeavyChaosOn(!isHeavyChaosOn)} style={{ ...btnStyle, background: isHeavyChaosOn ? 'rgba(255, 0, 60, 0.2)' : 'rgba(10, 10, 10, 0.7)', color: isHeavyChaosOn ? '#ff003c' : (wsConnected ? '#555' : '#333'), borderColor: isHeavyChaosOn ? '#ff003c' : '#333' }}>{isHeavyChaosOn ? '■ TETRIS: ON' : '▶ TETRIS: OFF'}</button>
+        <button onClick={() => { setDynamicWalls([]); sendCommand("clear_walls"); }} style={{ ...btnStyle, color: wsConnected ? '#ff4400' : '#444', borderColor: wsConnected ? '#ff4400' : '#444' }}>⎚ CLEAR ANOMALIES</button>
 
-        <div style={{ color: '#aaa', fontSize: '10px', textAlign: 'center', marginTop: '15px', letterSpacing: '2px'}}>--- TRINITY OVERRIDE ---</div>
+        <div style={{ color: '#aaa', fontSize: '10px', textAlign: 'center', marginTop: '15px', letterSpacing: '2px'}}>--- OVERRIDE ---</div>
         <div style={{ display: 'flex', gap: '5px', width: '100%', flexWrap: 'wrap' }}>
-          <button onClick={() => sendCommand("manual_shoot", "alpha")} style={{ ...btnStyle, flex: 1, color: '#00ffcc', borderColor: '#004444' }}>◎ A-SHT</button>
-          <button onClick={() => sendCommand("manual_shoot", "bravo")} style={{ ...btnStyle, flex: 1, color: '#ffaa00', borderColor: '#442200' }}>◎ B-SHT</button>
-          <button onClick={() => sendCommand("manual_shoot", "charlie")} style={{ ...btnStyle, flex: 1, color: '#00ff00', borderColor: '#004400' }}>◎ C-SHT</button>
+          <button onClick={() => sendCommand("manual_shoot", "alpha")} style={{ ...btnStyle, flex: 1, color: wsConnected ? '#ff5500' : '#444', borderColor: wsConnected ? '#aa3300' : '#444' }}>◎ A-SHT</button>
+          <button onClick={() => sendCommand("manual_shoot", "bravo")} style={{ ...btnStyle, flex: 1, color: wsConnected ? '#ffaa00' : '#444', borderColor: wsConnected ? '#442200' : '#444' }}>◎ B-SHT</button>
         </div>
-        <button onClick={() => sendCommand("manual_jump")} style={{ ...btnStyle, color: '#00ffcc', borderColor: '#004444' }}>⇡ ALPHA JUMP</button>
       </div>
 
-      <Canvas camera={{ position: [20, 30, 25], fov: 45 }}>
-        <ambientLight intensity={0.5} />
-        <pointLight position={[7, 20, 7]} intensity={400} color="#00ffcc" distance={80} />
-        <CinematicGimbal targetPos={alphaPos} />
-        <gridHelper args={[15, 15, "#00ffcc", "#111111"]} position={[gridCenter, -0.5, gridCenter]} />
+      <Canvas camera={{ position: [5, 10, 15], fov: 50 }}>
+        <color attach="background" args={['#050301']} />
+        <fog attach="fog" args={['#050301', 8, 40]} />
+        
+        <ambientLight intensity={0.6} color="#88aaff" /> 
+        <directionalLight position={[10, 20, 10]} intensity={1.5} color="#00ffff" />
+        
+        <CinematicGimbal targetPos={[alphaPos[0], alphaPos[1], alphaPos[2]]} />
+        <gridHelper args={[15, 15, "#331100", "#110500"]} position={[gridCenter, 0.0, gridCenter]} />
+        
         <Suspense fallback={null}>
-          <mesh rotation={[-Math.PI / 2, 0, 0]} position={[gridCenter, -0.5, gridCenter]} onClick={handleFloorClick}>
+          <mesh rotation={[-Math.PI / 2, 0, 0]} position={[gridCenter, -0.01, gridCenter]} onClick={handleFloorClick}>
             <planeGeometry args={[15, 15]} />
-            <meshBasicMaterial visible={false} /> 
+            <meshStandardMaterial color="#020202" roughness={0.1} metalness={0.9} /> 
           </mesh>
           
           <VTOLScout position={alphaPos} />
           <GothicKnightBravo position={bravoPos} />
-          <GothicKnightCharlie position={charliePos} />
           
           {laserBeam && <LaserBeam start={laserBeam.start} end={laserBeam.end} />}
 
-          {shrapnel.map((frag) => (
-            <ShatteredDebris key={frag.id} position={[frag.x, 0.5, frag.y]} onComplete={() => setShatter(prev => prev.filter(f => f.id !== frag.id))} />
-          ))}
+          {shrapnel.map((frag) => {
+            const threePos = pyToThree(frag.x, frag.y, frag.z);
+            return <ShatteredDebris key={frag.id} position={threePos} onComplete={() => setShatter(prev => prev.filter(f => f.id !== frag.id))} />;
+          })}
 
-          <mesh position={[targetPos[0], 0, targetPos[2]]}><boxGeometry args={[0.8, 0.8, 0.8]} /><meshStandardMaterial color="#ff003c" emissive="#ff003c" emissiveIntensity={2} toneMapped={false}/></mesh>
-          <mesh position={[startPos[0], -0.4, startPos[2]]}><planeGeometry args={[1.5, 1.5]} /><meshStandardMaterial color="#bb66ff" emissive="#bb66ff" emissiveIntensity={1} toneMapped={false} rotation={[-Math.PI/2, 0, 0]}/></mesh>
-          <mesh position={[bravoStartPos[0], -0.4, bravoStartPos[2]]}><planeGeometry args={[1.5, 1.5]} /><meshStandardMaterial color="#ffaa00" emissive="#ffaa00" emissiveIntensity={1.5} toneMapped={false} rotation={[-Math.PI/2, 0, 0]}/></mesh>
+          <TargetVIP position={vipPos} />
           
-          {/* CHARLIE'S GREEN BASE */}
-          <mesh position={[charlieStartPos[0], -0.4, charlieStartPos[2]]}><planeGeometry args={[1.5, 1.5]} /><meshStandardMaterial color="#00ff00" emissive="#00ff00" emissiveIntensity={1.5} toneMapped={false} rotation={[-Math.PI/2, 0, 0]}/></mesh>
+          <mesh position={[startPos[0], 0.02, startPos[1]]}><planeGeometry args={[1.5, 1.5]} /><meshStandardMaterial color="#00ffff" emissive="#00ffff" emissiveIntensity={1} toneMapped={false} rotation={[-Math.PI/2, 0, 0]}/></mesh>
+          <mesh position={[bravoStartPos[0], 0.02, bravoStartPos[1]]}><planeGeometry args={[1.5, 1.5]} /><meshStandardMaterial color="#ffaa00" emissive="#ffaa00" emissiveIntensity={1.5} toneMapped={false} rotation={[-Math.PI/2, 0, 0]}/></mesh>
           
-          <mesh position={[relayPos[0], -0.39, relayPos[2]]}><planeGeometry args={[1.5, 1.5]} /><meshStandardMaterial color="#ffd700" emissive="#ffd700" emissiveIntensity={1.5} toneMapped={false} rotation={[-Math.PI/2, 0, 0]}/></mesh>
+          {staticWalls.map((obs, index) => {
+            const threePos = pyToThree(obs[0], obs[1], obs[2]);
+            return <CyberBuilding key={`bldg-${index}`} position={threePos} isDiscovered={checkDiscovered(obs[0], obs[1], obs[2])} />;
+          })}
           
-          {staticWalls.map((obs, index) => <HologramWall key={`hard-${index}`} position={[obs[0], 0.5, obs[1]]} baseColor="#1a1a1a" glowColor="#004444" isDiscovered={checkDiscovered(obs[0], obs[1])} />)}
-          {dynamicWalls.map((wall, index) => <HologramWall key={`dyn-${index}`} position={[wall[0], 0.5, wall[1]]} baseColor="#ff4400" glowColor="#ff2200" isDiscovered={checkDiscovered(wall[0], wall[1])} />)}
-          {demonWalls.map((obs, index) => <DemonicObstacle key={`demon-${index}`} position={[obs[0], 0.5, obs[1]]} isDiscovered={checkDiscovered(obs[0], obs[1])} />)}
+          {dynamicWalls.map((wall, index) => {
+            const threePos = pyToThree(wall[0], wall[1], wall[2]);
+            return <CyberBuilding key={`dyn-${index}`} position={threePos} isDiscovered={checkDiscovered(wall[0], wall[1], wall[2])} />;
+          })}
+          
+          {demonWalls.map((obs, index) => {
+            const threePos = pyToThree(obs[0], obs[1], obs[2]);
+            return <DemonicObstacle key={`demon-${index}`} position={threePos} isDiscovered={checkDiscovered(obs[0], obs[1], obs[2])} />;
+          })}
         </Suspense>
       </Canvas>
     </div>
