@@ -43,3 +43,23 @@ When the A* algorithm returns "No Path" because the drone is boxed in:
 ## 📼 The VCR Black Box System (Advanced Debugging)
 To debug complex race conditions, I built a custom telemetry logging array. Every WebSocket ping, UI click, and enemy spawn is stamped with a Unix timestamp. On replay, the system wipes the grid and recreates the exact timeline with millisecond accuracy—without pinging the
 server again. <img width="1075" height="596" alt="6" src="https://github.com/user-attachments/assets/ea740259-2f4c-482a-8c51-ee1a0648da5c" />
+
+---
+
+## 🚀 EXPANSION: Phase 5 (Cyber-City Manhunt)
+**Volumetric Z-Axis Pathfinding • 3D WebGL Rendering • Autonomous Manhunt AI**
+
+*Swarm Matrix has officially evolved from a 2D tactical plane into a fully realized 3D Volumetric Cyber-City.*
+
+### 📐 1. Volumetric Intelligence Core
+* **[X, Y, Z] A* Pathfinding:** Upgraded from a flat grid to a full 3D matrix. Drones now mathematically calculate vertical ascents to navigate over multi-story skyscrapers.
+* **Ray-Cast Targeting:** Combat logic utilizes 3D vector-snapping to fire lasers down narrow alleys or up at targets positioned on rooftops.
+* **Z-Axis Anomaly Movement:** Dynamic threats (Demons) autonomously scale buildings and drop into alleyways without clipping below the physical bounds.
+
+### 📡 2. Autonomous Command Logic
+* **Dynamic Patrol & Acquisition:** Alpha (Scout) patrols randomized 3D sectors using simulated LiDAR. Upon detecting the VIP within a 3-block radius, it aborts patrol, locks on, and signals `"SUSPECT APPREHENDED."`
+* **Smart Escort Logic:** Bravo (Heavy) strictly targets biological anomalies, ignoring physical infrastructure to preserve kinetic battery.
+
+### 🕶️ 3. Holographic Renderer Upgrades
+* **Real-Time World Building:** Users can click to build skyscrapers, or activate the **"Tetris & Sniper" Chaos Engines** to autonomously drop randomized building blocks from the sky while drones adapt flight paths in real-time.
+* **Fog of War / LiDAR Reveal:** The city begins as dark wireframes. As Alpha's LiDAR hits coordinates, materials dynamically transform into illuminated, solid blocks using additive blending shaders.
